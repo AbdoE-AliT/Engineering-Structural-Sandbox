@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Structural Sandbox</title>
+  <style>
+      :root {
+          --bg: #0d1117;
+          --panel: #141b22;
+          --panel-strong: #10161d;
+          --elev: #18232d;
+          --line: rgba(148, 163, 184, 0.18);
+          --line-strong: rgba(148, 163, 184, 0.38);
+          --text: #e6edf3;
+          --muted: #97a4b6;
+          --accent: #5aa4ff;
+          --accent-strong: #7bb6ff;
+          --ok: #4ecb75;
+          --warn: #e0a747;
+          --bad: #f25f67;
+          --shadow: rgba(0,0,0,0.18);
+      }
+      * { box-sizing: border-box; }
+      html, body {
+          margin: 0;
+          height: 100%;
+          background: var(--bg);
+          color: var(--text);
+          font: 13px/1.45 "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+          overflow: hidden;
+      }
+      body {
+          letter-spacing: 0.01em;
+      }
+      html[lang="ar"] body {
+          font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+          letter-spacing: 0;
+      }
+      html[lang="ar"] #app aside { direction: rtl; }
+      html[lang="ar"] #app header { direction: rtl; }
+      html[lang="ar"] #app #view { direction: ltr; }
+      .language-picker { display: flex; align-items: center; gap: 6px; }
+      .language-picker select { width: auto; min-width: 90px; }
+      .start-language { justify-content: flex-end; margin-bottom: 12px; }
+      button, select, input {
+          font: inherit;
+          color: var(--text);
+          background: rgba(13, 17, 23, 0.92);
+          border: 1px solid var(--line);
+          border-radius: 6px;
+          padding: 6px 8px;
+          min-width: 0;
+          transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+      }
+      button {
+          cursor: pointer;
+      }
+      button:hover { border-color: var(--accent); }
+      button:active { transform: translateY(1px); }
+      button.primary {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #08131d;
+          font-weight: 700;
+      }
+      button.danger {
+          border-color: rgba(242, 95, 103, 0.5);
+          color: #ffb2b4;
+          background: rgba(242,95,103,0.08);
+      }
+      #explodeBtn {
+          position: relative;
+          display: grid;
+          place-items: center;
+          width: 156px;
+          height: 156px;
+          flex: 0 0 156px;
+          margin: 8px auto 12px;
+          padding: 0;
+          border: 9px solid transparent;
+          border-radius: 50%;
+          background:
+              linear-gradient(145deg, #f8f8f8 0%, #aeb2b5 18%, #f5f5f5 42%, #85898d 68%, #e9e9e9 100%) padding-box,
+              linear-gradient(145deg, #73777b, #f4f4f4 28%, #85898d 66%, #dedede) border-box;
+          box-shadow: 0 8px 14px rgba(0,0,0,.48), inset 0 2px 3px rgba(255,255,255,.9);
+          color: #fff;
+          isolation: isolate;
+          transition: filter .16s ease, transform .12s ease, box-shadow .16s ease;
+      }
+      #explodeBtn::before {
+          position: absolute;
+          content: "";
+          inset: 7px;
+          z-index: -1;
+          border: 1px solid rgba(255,255,255,.85);
+          border-radius: 50%;
+          background:
+              radial-gradient(ellipse at 42% 23%, rgba(255,255,255,.48) 0%, rgba(255,255,255,.14) 31%, transparent 32%),
+              radial-gradient(ellipse at 50% 30%, #ff6667 0%, #ed171d 49%, #c9000b 78%, #8f0008 100%);
+          box-shadow: inset 0 4px 8px rgba(255,255,255,.52), inset 0 -7px 12px rgba(71,0,0,.56), 0 0 0 2px rgba(255,255,255,.8);
+      }
+      #explodeBtn::after {
+          position: absolute;
+          content: "";
+          top: 17%;
+          left: 40%;
+          width: 20%;
+          height: 8%;
+          border-radius: 50%;
+          background: rgba(255,255,255,.96);
+          filter: blur(.3px);
+          box-shadow: 0 0 8px rgba(255,255,255,.55);
+      }
+      #explodeBtn span {
+          z-index: 1;
+          margin: 0;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 900;
+          letter-spacing: .13em;
+          text-align: center;
+          text-shadow: 0 1px 3px rgba(70,0,0,.85);
+      }
+      #explodeBtn:hover:not(:disabled) {
+          border-color: transparent;
+          filter: brightness(1.12);
+          box-shadow: 0 10px 18px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,255,255,.9), 0 0 18px rgba(255,40,40,.22);
+      }
+      #explodeBtn:active:not(:disabled) { transform: translateY(2px) scale(.98); }
+      #explodeBtn:disabled { cursor: not-allowed; filter: grayscale(.55) brightness(.72); }
+      #explodeBtn:focus-visible { outline: 3px solid #ff8b8b; outline-offset: 4px; }
+      button.running {
+          background: var(--bad);
+          border-color: var(--bad);
+          color: #fff;
+          font-weight: 700;
+      }
+      button.on {
+          border-color: var(--accent);
+          color: var(--accent-strong);
+          background: rgba(90, 164, 255, 0.08);
+      }
+      input[type=number], input[type=text] { width: 100%; }
+      select { width: 100%; }
+      input[type=range] {
+          width: 100%;
+          height: 6px;
+          border: none;
+          border-radius: 3px;
+          background: var(--line);
+          appearance: none;
+          padding: 0;
+      }
+      input[type=range]::-webkit-slider-thumb {
+          appearance: none;
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: var(--accent);
+          cursor: pointer;
+          border: none;
+      }
+      input[type=range]::-moz-range-thumb {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: var(--accent);
+          cursor: pointer;
+          border: none;
+      }
+      #start {
+          position: fixed;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: radial-gradient(circle at 50% 25%, #16273b, #0d1117 62%);
+          z-index: 10;
+      }
+      .card {
+          background: rgba(20, 27, 34, 0.96);
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          padding: 30px 28px 24px;
+          width: min(470px, 90vw);
+          box-shadow: 0 16px 30px var(--shadow);
+      }
+      .card h1 {
+          margin: 0 0 8px;
+          font-size: 30px;
+          letter-spacing: -0.04em;
+      }
+      .card p {
+          color: var(--muted);
+          margin: 0 0 22px;
+          font-size: 13px;
+      }
+      .row { display: flex; gap: 8px; align-items: center; }
+      .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+      .grow { flex: 1; }
+      #app {
+          position: fixed;
+          inset: 0;
+          display: none;
+          grid-template-columns: 250px 1fr 300px;
+          grid-template-rows: 56px 1fr 30px;
+          grid-template-areas: "top top top" "left view right" "foot foot foot";
+          background: var(--bg);
+      }
+      header {
+          grid-area: top;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0 14px;
+          background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+          border-bottom: 1px solid var(--line);
+      }
+      header strong {
+          font-size: 12px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--muted);
+      }
+      #left { grid-area: left; border-right: 1px solid var(--line); }
+      #right { grid-area: right; border-left: 1px solid var(--line); }
+      #blastFlash {
+          position: fixed;
+          inset: 0;
+          z-index: 20;
+          background: #fff;
+          opacity: 0;
+          pointer-events: none;
+      }
+      aside {
+          background: linear-gradient(180deg, rgba(20,27,34,0.98), rgba(16,22,29,1));
+          overflow: auto;
+          padding: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+      }
+      #view { grid-area: view; position: relative; overflow: hidden; min-width: 0; min-height: 0; }
+      #view canvas { display: block; width: 100%; height: 100%; }
+      footer {
+          grid-area: foot;
+          background: linear-gradient(180deg, var(--panel), var(--panel-strong));
+          border-top: 1px solid var(--line);
+          color: var(--muted);
+          padding: 0 12px;
+          font-size: 12px;
+          display: flex;
+          gap: 16px;
+          align-items: center;
+          white-space: nowrap;
+          overflow: hidden;
+      }
+      h3 {
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--muted);
+          margin: 8px 0 2px;
+      }
+      .mat {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 8px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          cursor: pointer;
+          text-align: left;
+          background: rgba(13,17,23,0.3);
+      }
+      .mat.sel {
+          border-color: var(--accent);
+          background: rgba(90, 164, 255, 0.08);
+      }
+      .mat.placing {
+          border-color: var(--ok);
+          box-shadow: inset 3px 0 var(--ok);
+      }
+      .mat small { color: var(--muted); font-size: 11px; }
+      .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+      .sug {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 8px;
+          font-size: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          background: rgba(13,17,23,0.28);
+      }
+      .sug.warn { border-color: var(--warn); }
+      .sug.bad { border-color: var(--bad); }
+      .stat {
+          display: flex;
+          justify-content: space-between;
+          color: var(--muted);
+          gap: 8px;
+      }
+      .stat b { color: var(--text); font-weight: 600; text-align: right; }
+      .v3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+      .muted { color: var(--muted); }
+      .kbd {
+          border: 1px solid var(--line);
+          border-radius: 4px;
+          padding: 0 5px;
+          font-size: 11px;
+          color: var(--text);
+          background: rgba(13, 17, 23, 0.9);
+      }
+      #hint {
+          position: absolute;
+          left: 12px;
+          top: 10px;
+          color: var(--muted);
+          font-size: 12px;
+          pointer-events: none;
+          background: rgba(13,17,23,0.76);
+          border: 1px solid var(--line);
+          padding: 6px 10px;
+          border-radius: 8px;
+          line-height: 1.6;
+          box-shadow: 0 4px 12px var(--shadow);
+      }
+      #tutorialStartBtn { width: 100%; text-align: left; border-color: rgba(90,164,255,.45); background: rgba(90,164,255,.08); }
+      #tutorialOverlay[hidden] { display: none; }
+      #tutorialOverlay { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+      .tutorial-shade { position: fixed; background: rgba(2,6,12,.78); pointer-events: auto; }
+      #tutorialSpotlight {
+          position: fixed;
+          border: 2px solid var(--accent-strong);
+          border-radius: 10px;
+          box-shadow: 0 0 0 4px rgba(90,164,255,.2), 0 0 32px rgba(90,164,255,.35);
+          pointer-events: none;
+          transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease;
+      }
+      #tutorialCard {
+          position: fixed;
+          width: min(360px, calc(100vw - 32px));
+          padding: 18px;
+          border: 1px solid rgba(123,182,255,.5);
+          border-radius: 14px;
+          background: linear-gradient(150deg, #1a2735, #101820 72%);
+          box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 28px rgba(90,164,255,.12);
+          color: var(--text);
+          pointer-events: auto;
+          animation: tutorial-pop .24s cubic-bezier(.2,.8,.2,1) both;
+      }
+      @keyframes tutorial-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      #tutorialProgress { color: var(--accent-strong); font-size: 11px; font-weight: 700; letter-spacing: .08em; }
+      #tutorialCard h2 { margin: 8px 0; font-size: 18px; }
+      #tutorialCard p { margin: 0 0 14px; color: #c3cfda; line-height: 1.65; }
+      #tutorialCard .tutorial-actions { display: flex; gap: 8px; align-items: center; }
+      #tutorialCard .tutorial-actions .grow { text-align: right; }
+      #tutorialCard button:focus-visible, #tutorialStartBtn:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+      html[lang="ar"] #tutorialStartBtn { text-align: right; }
+      html[lang="ar"] #tutorialCard .tutorial-actions .grow { text-align: left; }
+      #mode {
+          position: absolute;
+          right: 12px;
+          top: 10px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          color: var(--accent-strong);
+          background: rgba(13,17,23,0.8);
+          border: 1px solid var(--line);
+          padding: 6px 10px;
+          border-radius: 8px;
+      }
+      #quakeWaveCaption {
+          position: absolute;
+          left: 12px;
+          bottom: 12px;
+          max-width: min(520px, calc(100% - 24px));
+          padding: 7px 10px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          color: var(--muted);
+          background: rgba(13,17,23,0.82);
+          font-size: 11px;
+          pointer-events: none;
+      }
+      #msg { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+      a { color: var(--accent-strong); }
+      .quake-motion { display: block; width: 100%; height: 118px; margin-top: 8px; }
+      .quake-motion-readout { margin-top: 4px; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+      /* ---- start screen ---- */
+      #start {
+          background:
+              radial-gradient(1100px 520px at 72% -12%, rgba(90, 164, 255, 0.20), transparent 60%),
+              radial-gradient(820px 460px at 8% 112%, rgba(78, 203, 117, 0.12), transparent 55%),
+              linear-gradient(180deg, #0a101c 0%, #0d1117 100%);
+      }
+      #start::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.55;
+          background-image:
+              linear-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(148, 163, 184, 0.07) 1px, transparent 1px);
+          background-size: 46px 46px;
+          -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 25%, transparent 78%);
+          mask-image: radial-gradient(circle at 50% 42%, #000 25%, transparent 78%);
+      }
+      #start::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: radial-gradient(640px 320px at 50% 118%, rgba(90, 164, 255, 0.14), transparent 70%);
+          animation: startDrift 14s ease-in-out infinite alternate;
+      }
+      @keyframes startDrift {
+          from { transform: translateY(0); }
+          to { transform: translateY(-26px); }
+      }
+      .card {
+          position: relative;
+          background: rgba(20, 27, 34, 0.74);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid var(--line-strong);
+          box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(90, 164, 255, 0.05);
+      }
+      .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+      .logo {
+          width: 52px;
+          height: 52px;
+          flex: none;
+          display: grid;
+          place-items: center;
+          border-radius: 14px;
+          color: var(--accent-strong);
+          background: linear-gradient(160deg, rgba(90, 164, 255, 0.22), rgba(78, 203, 117, 0.12));
+          border: 1px solid var(--line-strong);
+          box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .logo svg { width: 34px; height: 34px; }
+      .card h1 {
+          margin: 0;
+          font-size: 30px;
+          letter-spacing: -0.04em;
+          background: linear-gradient(92deg, #8ec5ff 0%, #7bb6ff 38%, #4ecb75 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+      }
+      .tagline { color: var(--muted); margin: 4px 0 0; font-size: 13px; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 16px; }
+      .chip {
+          font-size: 11px;
+          color: var(--muted);
+          border: 1px solid var(--line);
+          border-radius: 999px;
+          padding: 3px 10px;
+          background: rgba(13, 17, 23, 0.45);
+      }
+      #wsName:focus {
+          border-color: var(--accent);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(90, 164, 255, 0.16);
+      }
+      #wsGo { padding: 6px 16px; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<div id="start">
+  <div class="card">
+    <div class="language-picker start-language">
+      <label for="languageSelectStart" data-i18n="language">Language</label>
+      <select id="languageSelectStart" data-language-select aria-label="Language">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 18h48"/>
+          <path d="M13 18v34M51 18v34"/>
+          <path d="M8 52h48"/>
+          <path d="M13 18l38 34M51 18L13 52"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Structural Sandbox</h1>
+        <p class="tagline">Build, fasten, and earthquake-test structures in 3D.</p>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip">3D modeling</span>
+      <span class="chip">Member fastening</span>
+      <span class="chip">Earthquake testing</span>
+      <span class="chip">Stress analysis</span>
+    </div>
+    <p>Name your workspace to begin. Build in 3D, fasten members together, then test against gravity and earthquakes.</p>
+    <div class="row">
+      <input id="wsName" placeholder="e.g. Riverside footbridge" maxlength="60" class="grow" aria-label="Workspace name">
+      <button id="wsGo" class="primary">Create</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <strong id="wsTitle">Workspace</strong>
+    <button id="prepareBtn" title="Precompute simulation motion for smooth playback">Build Sim</button>
+    <button id="runBtn" class="primary">Run Live</button>
+    <button id="playBakedBtn" title="Play the cached simulation" disabled>Play Baked</button>
+    <span class="grow"></span>
+    <button id="undoBtn">Undo</button>
+    <button id="redoBtn" title="Redo (Ctrl+Shift+Z)">Redo</button>
+    <button id="exportBtn" title="Export the scene as a 3D GLB model">Export 3D</button>
+    <button id="saveProjectBtn" title="Save an editable project file to your computer">Save Project</button>
+    <button id="importBtn" title="Load an editable project file">Load Project</button>
+    <div class="language-picker">
+      <label for="languageSelectApp" data-i18n="language">Language</label>
+      <select id="languageSelectApp" data-language-select aria-label="Language">
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+      </select>
+    </div>
+    <input type="file" id="importFile" accept=".json" hidden>
+  </header>
+
+  <aside id="left">
+    <h3>Gizmo</h3>
+    <div class="seg" id="gizmoButtons">
+      <button data-g="move">Move | 1</button>
+      <button data-g="rotate">Rotate | 2</button>
+      <button data-g="scale">Scale | 3</button>
+    </div>
+    <h3>Material</h3>
+    <div id="mats"></div>
+    <h3>Shape</h3>
+    <select id="shapeSel" style="width:100%">
+      <option value="box">Box</option>
+      <option value="cylinder">Cylinder</option>
+      <option value="sphere">Sphere</option>
+      <option value="cone">Cone</option>
+      <option value="wedge">Wedge</option>
+    </select>
+    <h3>New block size (m)</h3>
+    <div class="v3">
+      <input type="number" id="nW" value="1" step="0.05" min="0.05" aria-label="Width">
+      <input type="number" id="nH" value="1" step="0.05" min="0.05" aria-label="Height">
+      <input type="number" id="nD" value="1" step="0.05" min="0.05" aria-label="Depth">
+    </div>
+    <label class="row"><input type="checkbox" id="foundationMode"> Add buried concrete foundation</label>
+    <div id="foundationHelp" class="muted" style="font-size:11px">Buried members are shown translucent through the filled ground. Enable to set plan width and embedment depth; the top is at grade.</div>
+    <div class="row"><button id="addBtn" class="primary grow">Add block</button></div>
+    <h3>Building model</h3>
+    <select id="framePreset" aria-label="RC frame preset">
+      <option value="standard">Standard RC frame</option>
+      <option value="older">Older, weaker RC frame</option>
+      <option value="stiff">Stiffer RC frame</option>
+    </select>
+    <div class="row">
+      <select id="frameFloors" class="grow" aria-label="Building stories">
+        <option value="2">2 stories</option>
+        <option value="3" selected>3 stories</option>
+        <option value="4">4 stories</option>
+        <option value="5">5 stories</option>
+      </select>
+      <button id="buildFrameBtn" class="primary">Build RC frame</button>
+    </div>
+    <div class="row"><button id="braceModeBtn" class="grow">Place X-bracing</button></div>
+    <div class="stat"><span>Brace thickness</span><b id="braceThickTxt">0.05 m</b></div>
+    <div class="row">
+      <input type="range" id="braceThick" min="0.02" max="0.2" step="0.01" value="0.05" class="grow" aria-label="Brace thickness">
+    </div>
+    <div class="row"><button id="infillModeBtn" class="grow">Place infill</button></div>
+    <h3>Fastening</h3>
+    <label class="row"><input type="checkbox" id="autoFasten" checked> Auto-fasten touching blocks</label>
+    <div class="muted" style="font-size:12px">Timber: nails | Steel and aluminum: fillet welds | Brick: mortar | Concrete: cast-in bond. Fastened blocks behave as one rigid piece in the simulation, if the joint holds its design load.</div>
+    <h3>Grid snapping</h3>
+    <div class="row">
+      <label class="row"><input type="checkbox" id="snap" checked> Snap</label>
+      <select id="gridSel" class="grow" aria-label="Grid snap size">
+        <option value="0.001">0.001 m (1 mm)</option>
+        <option value="0.1">0.10 m</option>
+        <option value="0.25">0.25 m</option>
+        <option value="0.5">0.50 m</option>
+        <option value="1" selected>1.00 m</option>
+      </select>
+    </div>
+    <h3>Earthquake</h3>
+    <select id="quakeSel" aria-label="Earthquake preset">
+      <option value="none">None (gravity only)</option>
+      <option value="m45">M4.5 Minor</option>
+      <option value="m5">M5.0 Light</option>
+      <option value="m55">M5.5 Moderate</option>
+      <option value="m6">M6.0 Strong</option>
+      <option value="m65">M6.5 Major</option>
+      <option value="m7">M7.0 Major</option>
+      <option value="m75">M7.5 Great</option>
+      <option value="m8">M8.0 Great</option>
+    </select>
+    <div id="quakeInfo" class="muted" style="font-size:11px;margin-top:4px"></div>
+    <div class="muted" style="font-size:11px">Earthquake inputs use the corrected, recorded two-horizontal-component El Centro accelerogram (0.02 s samples); lower and higher presets scale that one record. Rigid-body simulations translate the ground plate from the record, while frame response uses the same horizontal accelerations. Soil retrofit estimates assume uniform soil (18 kN/m^3, 30 degrees friction angle) and reduced passive resistance. Reference standards such as <a href="https://www.aisc.org/aisc/publications/current-standards/aisc-360/" target="_blank" rel="noreferrer">AISC 360</a>. Record data: <a href="https://www.vibrationdata.com/elcentro.htm" target="_blank" rel="noreferrer">El Centro record and source notes</a>.</div>
+    <h3>View</h3>
+    <label class="row"><input type="checkbox" id="stressView"> Stress heatmap</label>
+    <label class="row"><input type="checkbox" id="waveView" checked> 3D seismic-wave visualization</label>
+    <label class="row">Wave direction (degrees)
+      <input type="number" id="waveDirection" min="0" max="360" step="1" value="15" style="width:76px" aria-label="Illustrative wave direction in degrees">
+    </label>
+    <div class="muted" style="font-size:10px">Visual only; changing direction does not rotate earthquake input or alter simulation results.</div>
+    <select id="envSel" aria-label="Environment">
+      <option value="grid">Blueprint grid</option>
+      <option value="grass">Grass field</option>
+      <option value="desert">Desert</option>
+      <option value="snow">Snow field</option>
+      <option value="asphalt">Asphalt site</option>
+    </select>
+    <label for="skyStyle">Skybox style</label>
+    <select id="skyStyle" aria-label="Skybox style">
+      <option value="natural">Natural atmosphere</option>
+      <option value="clear">Clear blue</option>
+      <option value="hazy">Hazy / overcast</option>
+    </select>
+    <div class="row">
+      <button id="loadHdriBtn" class="grow">Load HDRI</button>
+      <button id="clearHdriBtn">Procedural</button>
+      <input type="file" id="hdriFile" accept=".hdr,.exr,image/vnd.radiance,image/x-exr" hidden>
+    </div>
+    <div id="hdriName" class="muted" style="font-size:10px">Procedural sky</div>
+    <label for="timeOfDay">Time of day</label>
+    <div class="stat"><span>Lighting</span><b id="timeOfDayValue" aria-live="polite">12:00 · Day</b></div>
+    <input type="range" id="timeOfDay" min="0" max="24" step="0.25" value="12"
+      aria-label="Time of day from midnight to midnight">
+    <div class="stat muted"><span>Sunrise ~06:00</span><span>Sunset ~18:00</span></div>
+    <div class="stat"><span>Fly speed</span><b id="speedTxt">4.0 m/s</b></div>
+    <div class="row"><button id="clearBtn" class="danger grow">Clear workspace</button></div>
+  </aside>
+
+  <main id="view">
+    <div id="hint"></div>
+    <div id="mode">BUILD</div>
+    <div id="quakeWaveCaption" hidden>Incoming P / S / Rayleigh / Love wave visualization; the fixed arrow shows the propagation direction. Illustrative only—not used by the physics.</div>
+  </main>
+
+  <aside id="right">
+    <button id="tutorialStartBtn">Interactive tutorial</button>
+    <h3>Selection</h3>
+    <div id="props"></div>
+    <h3>Structure</h3>
+    <div id="stats"></div>
+    <h3>Suggestions | <span class="kbd">Space</span> auto-stabilizes</h3>
+    <div id="quakeResponse"></div>
+    <div id="learnerStatus" class="muted" style="font-size:11px"></div>
+    <div class="row"><button id="autoStabilizeBtn" class="grow">Auto-stabilize</button><button id="resetLearningBtn">Reset learning</button></div>
+    <div id="suggestions"></div>
+    <div aria-hidden="true" style="flex:0 0 max(240px, 45vh)"></div>
+    <button id="explodeBtn" type="button" title="Play an explosion; fragments settle on the ground until reset" aria-label="Explode scene"><span>EXPLODE</span></button>
+  </aside>
+
+  <footer id="foot"><span id="msg">Ready.</span></footer>
+  <div id="blastFlash" aria-hidden="true"></div>
+  <div id="tutorialOverlay" hidden aria-live="polite">
+    <div class="tutorial-shade" data-shade="top"></div>
+    <div class="tutorial-shade" data-shade="right"></div>
+    <div class="tutorial-shade" data-shade="bottom"></div>
+    <div class="tutorial-shade" data-shade="left"></div>
+    <div id="tutorialSpotlight" aria-hidden="true"></div>
+    <section id="tutorialCard" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+      <div id="tutorialProgress"></div>
+      <h2 id="tutorialTitle"></h2>
+      <p id="tutorialDescription"></p>
+      <div class="tutorial-actions">
+        <button id="tutorialCloseBtn">Exit</button>
+        <button id="tutorialBackBtn">Back</button>
+        <span class="grow"></span>
+        <button id="tutorialNextBtn" class="primary">Next</button>
+      </div>
+    </section>
+  </div>
+</div>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/",
+      "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/",
+      "@dimforge/rapier3d": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/rapier.mjs"
+    }
+  }
+</script>
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
